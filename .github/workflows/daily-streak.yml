@@ -1,0 +1,44 @@
+name: Daily Commit
+
+on:
+  schedule:
+    # 06:00 UTC = 08:00 Germany during CEST
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  daily-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Update streak
+        run: |
+          DATE=$(date -u +"%Y-%m-%d")
+
+          if grep -q "$DATE" streak.md 2>/dev/null; then
+            echo "Commit already exists for $DATE"
+            exit 0
+          fi
+
+          echo "- $DATE" >> streak.md
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add streak.md
+
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+
+          DATE=$(date -u +"%Y-%m-%d")
+          git commit -m "chore: daily streak $DATE"
+          git push
